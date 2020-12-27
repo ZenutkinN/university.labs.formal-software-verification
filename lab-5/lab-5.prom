@@ -1,0 +1,227 @@
+int numA = 2
+int numB = 4
+
+int resultA = 0;
+int resultB = 0;
+int resultC = 0;
+int numOfProcess = 3;
+
+bool isReflexivity = true;
+bool isTransitivity = true;
+bool isSymmetric = true;
+
+bool isPassedA = false;
+bool isPassedB = false;
+bool isPassedC = false;
+
+typedef array { 
+    int r[3]
+};
+
+array R[3];
+
+proctype algoritmA()
+{ 
+	resultA = (numA * numA + numB * numB); 
+	isPassedA = true; 
+} 
+
+proctype algoritmB() 
+{  
+	resultB = (numA + numB) * (numA + numB)  - 2 * numA * numB; 
+	isPassedB = true; 
+} 
+
+proctype algoritmC() 
+{ 
+	resultC = numA + numA + numB + numB + numB + numB; 
+	isPassedC = true; 
+} 
+
+proctype checkReflexivity() {
+	int count1 = 0;
+	do   :: (count1 < numOfProcess) ->
+        if   :: (R[count1].r[count1] != 1) ->  isReflexivity = false
+			 ::	assert(R[count1].r[count1] == 1) -> progress: skip
+		fi;
+		
+		count1 = count1+1;
+		:: (count1 >= numOfProcess) -> break
+od;
+}
+
+proctype checkTransitivity() {
+	array squareR[3];
+	int count1 = 0;
+	int count2 = 0;
+	int count3 = 0;
+	do   :: (count1 < numOfProcess) ->
+		do   :: (count2 < numOfProcess) ->
+			int summ = 0;
+			do   :: (count3 < numOfProcess) -> summ = summ + R[count1].r[count3] * R[count3].r[count2]; count3 = count3+1;
+			:: (count3 >= numOfProcess) -> break
+
+			od;
+			squareR[count1].r[count2] = summ;
+			count2 = count2+1;
+			count3 = 0;
+			:: (count2 >= numOfProcess) -> break
+		od;
+		count1 = count1+1;
+		count2 = 0
+		:: (count1 >= numOfProcess) -> break
+	od;
+	count1 = 0;
+	count2 = 0;
+	count3 = 0;
+
+
+
+	do   :: (count1 < numOfProcess) ->
+		do   :: (count2 < numOfProcess) ->
+			if   :: (squareR[count1].r[count2] == 1 && R[count1].r[count2] == 0) -> isTransitivity = false
+				::	assert(squareR[count1].r[count2] != 1 || R[count1].r[count2] != 0) -> progress: skip
+			fi;
+			count2 = count2+1;
+			:: (count2 >= numOfProcess) -> break
+		od;
+		count1 = count1+1;
+		count2 = 0
+		:: (count1 >= numOfProcess) -> break
+	od;
+}
+
+proctype checkSymmetric() {
+	int count1 = 0;
+	int count2 = 0;
+
+	do   :: (count1 < numOfProcess) ->
+		do   :: (count2 < numOfProcess) ->
+			if   :: (R[count1].r[count2] != R[count2].r[count1]) ->  isSymmetric = false
+				::	assert(R[count1].r[count2] == R[count2].r[count1]) -> progress: skip
+			fi;
+			count2 = count2+1;
+			:: (count2 >= numOfProcess) -> break
+		od;
+		count1 = count1+1;
+		count2 = 0
+		:: (count1 >= numOfProcess) -> break
+	od;
+}
+
+
+proctype NVPMV() {
+	int epsilon = 0;
+
+
+	int results[3];
+	results[0] = resultA;
+	results[1] = resultB;
+	results[2] = resultC;
+
+	int count1 = 0;
+	int count2 = 0;
+	do   :: (count1 < numOfProcess) ->
+		do   :: (count2 < numOfProcess) ->
+			int diff = (results[count1]-results[count2]);
+			if  :: assert(diff < 0) ->  progress: diff = -1*diff 
+				::	(diff >= 0) -> skip
+			fi;
+
+			if   :: (diff <= epsilon) ->  R[count1].r[count2] = 1                  
+				:: (diff > epsilon) ->  R[count1].r[count2] = 0
+			fi;
+			count2 = count2+1;
+			:: (count2 >= numOfProcess) -> break
+		od;
+		count1 = count1+1;
+		count2 = 0
+		:: (count1 >= numOfProcess) -> break
+	od;
+
+
+
+	run checkReflexivity();
+
+	run checkTransitivity();
+
+	run checkSymmetric();
+
+	count1 = 0;
+	count2 = 0;
+	int count3 = 0;
+	int count4 = 0;
+	if   :: (!(isSymmetric && isReflexivity && isTransitivity)) ->
+		printf("Error of NVP-MV");
+		:: (isSymmetric && isReflexivity && isTransitivity) -> skip
+	fi;
+	count1 = 0;
+	count2 = 0;
+	count3 = 0;
+	count4 = 0;
+
+	int arrayCountOne[3];
+
+
+	do   :: (count1 < numOfProcess) ->
+		int countOne = 0;
+		do   :: (count2 < numOfProcess) ->
+			if   :: (R[count1].r[count2] == 1) -> countOne++;
+				::	(R[count1].r[count2] != 1) -> skip
+			fi;
+
+			count2 = count2+1;
+			:: (count2 >= numOfProcess) -> break
+		od;
+		arrayCountOne[count1] = countOne;
+		count1 = count1+1;
+		count2 = 0
+		:: (count1 >= numOfProcess) -> break
+	od;
+	count1 = 0;
+	count2 = 0;
+	count3 = 0;
+	count4 = 0;
+
+
+	bool solutionFound = false;
+	
+	do   :: (count1 < numOfProcess) ->
+		if   :: (arrayCountOne[count1] >= (numOfProcess+1)/2) ->  
+			solutionFound = true;	
+			do   :: (count2 < numOfProcess) ->
+				if   :: (R[count1].r[count2] == 1) ->  
+						do   :: (count3 < numOfProcess) ->
+							 if :: (count2 == count3) -> printf("Algorithm  number "); printf("%d\n", count3+1);
+							:: (count2 != count3) -> skip
+							fi
+							count3 = count3+1;
+						:: (count3 >= numOfProcess) -> break
+						od;	
+						count3 = 0;
+					::	(R[count1].r[count2] != 1) -> skip
+				fi;
+				count2 = count2+1;
+				:: (count2 >= numOfProcess) -> break
+			od;
+			break;
+		::(arrayCountOne[count1] < (numOfProcess+1)/2) -> skip
+		fi;	
+		count1 = count1+1;
+		count2 = 0;
+		:: (count1 >= numOfProcess) -> break
+	od;            
+
+
+	if :: (!solutionFound) -> printf("NVP-MV is not suitable to make a decision");
+	:: (solutionFound) -> skip
+	fi
+
+}
+
+init {
+ atomic {run algoritmA()}
+ atomic {run algoritmB()}
+ atomic { run algoritmC();}
+ (isPassedA && isPassedB && isPassedC) ->  run NVPMV();
+}
